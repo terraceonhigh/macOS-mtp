@@ -3,6 +3,8 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var deviceWatcher: DeviceWatcher!
+    private var bridge: BridgeProcess?
+    private var mountManager = MountManager()
 
     // Current state
     private var connectedDevice: USBDevice?
@@ -11,6 +13,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         setupDeviceWatcher()
         updateIcon(state: .idle)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        Task {
+            await teardown()
+        }
     }
 
     // MARK: - Status Item
@@ -28,9 +36,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             deviceItem.isEnabled = false
             menu.addItem(deviceItem)
 
-            menu.addItem(NSMenuItem(title: "Eject \(device.displayName)",
-                                    action: #selector(ejectDevice),
-                                    keyEquivalent: "e"))
+            if mountManager.isMounted {
+                menu.addItem(NSMenuItem(title: "Eject \(device.displayName)",
+                                        action: #selector(ejectDevice),
+                                        keyEquivalent: "e"))
+            } else if bridge?.isRunning == true {
+                let connecting = NSMenuItem(title: "Connecting…", action: nil, keyEquivalent: "")
+                connecting.isEnabled = false
+                menu.addItem(connecting)
+            }
         } else {
             let noDevice = NSMenuItem(title: "No device connected", action: nil, keyEquivalent: "")
             noDevice.isEnabled = false
@@ -39,7 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit AndroidFS",
-                                action: #selector(NSApplication.terminate(_:)),
+                                action: #selector(quitApp),
                                 keyEquivalent: "q"))
 
         statusItem.menu = menu
@@ -97,23 +111,93 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         connectedDevice = device
         updateIcon(state: .connecting)
         rebuildMenu()
-        // Phase 4: spawn bridge, mount WebDAV
+
+        Task {
+            await connectDevice(device)
+        }
     }
 
     private func handleDeviceDetached(_ device: USBDevice) {
         NSLog("AndroidFS: Device detached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
               device.vendorID, device.productID)
-        connectedDevice = nil
-        updateIcon(state: .idle)
-        rebuildMenu()
-        // Phase 4: unmount, stop bridge
+
+        Task {
+            await teardown()
+            await MainActor.run {
+                connectedDevice = nil
+                updateIcon(state: .idle)
+                rebuildMenu()
+            }
+        }
     }
 
     @objc private func ejectDevice() {
         NSLog("AndroidFS: Eject requested")
-        // Phase 4: unmount + stop bridge
-        connectedDevice = nil
-        updateIcon(state: .idle)
-        rebuildMenu()
+        Task {
+            await teardown()
+            await MainActor.run {
+                connectedDevice = nil
+                updateIcon(state: .idle)
+                rebuildMenu()
+            }
+        }
+    }
+
+    @objc private func quitApp() {
+        Task {
+            await teardown()
+            await MainActor.run {
+                NSApplication.shared.terminate(nil)
+            }
+        }
+    }
+
+    // MARK: - Bridge + Mount Lifecycle
+
+    private func connectDevice(_ device: USBDevice) async {
+        // Wait for USB interface to settle before opening MTP session
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+
+        let bp = BridgeProcess()
+        self.bridge = bp
+
+        do {
+            let port = try await bp.start()
+            let displayName = bp.deviceName ?? device.displayName
+
+            let _ = try await mountManager.mount(port: port, displayName: displayName)
+
+            await MainActor.run {
+                NSLog("AndroidFS: Device mounted as volume")
+                updateIcon(state: .mounted)
+                rebuildMenu()
+            }
+        } catch let bridgeErr as BridgeError where bridgeErr == .timeout {
+            // Timeout — File Transfer mode not selected
+            NSLog("AndroidFS: Bridge timeout — prompting user")
+            BridgeProcess.postFileTransferNotification()
+            bp.stop()
+            self.bridge = nil
+            await MainActor.run {
+                updateIcon(state: .error)
+                rebuildMenu()
+            }
+        } catch let err {
+            NSLog("AndroidFS: Connection failed — %@", err.localizedDescription)
+            bp.stop()
+            self.bridge = nil
+            await MainActor.run {
+                updateIcon(state: .error)
+                rebuildMenu()
+            }
+        }
+    }
+
+    private func teardown() async {
+        if mountManager.isMounted {
+            await mountManager.unmount()
+        }
+        bridge?.stop()
+        bridge = nil
     }
 }
