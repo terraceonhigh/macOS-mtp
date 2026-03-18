@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>vendors</key>
+	<array>
+		<dict>
+			<key>name</key><string>Google / HTC</string>
+			<key>vendorID</key><integer>6353</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Samsung</string>
+			<key>vendorID</key><integer>1256</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>LG</string>
+			<key>vendorID</key><integer>4100</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Motorola</string>
+			<key>vendorID</key><integer>8888</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Sony</string>
+			<key>vendorID</key><integer>4046</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>OnePlus</string>
+			<key>vendorID</key><integer>10864</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Xiaomi</string>
+			<key>vendorID</key><integer>10007</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>OPPO</string>
+			<key>vendorID</key><integer>8921</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Huawei</string>
+			<key>vendorID</key><integer>4817</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Asus</string>
+			<key>vendorID</key><integer>2821</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Lenovo</string>
+			<key>vendorID</key><integer>5765</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>ZTE</string>
+			<key>vendorID</key><integer>6610</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Nokia</string>
+			<key>vendorID</key><integer>1057</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Realme / BBK</string>
+			<key>vendorID</key><integer>8137</integer>
+		</dict>
+		<dict>
+			<key>name</key><string>Nothing</string>
+			<key>vendorID</key><integer>10376</integer>
+		</dict>
+	</array>
+</dict>
+</plist>
