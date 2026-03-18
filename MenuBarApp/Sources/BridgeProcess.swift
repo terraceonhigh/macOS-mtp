@@ -18,6 +18,9 @@ class BridgeProcess {
 
         NSLog("AndroidFS: Starting bridge at %@", bridgePath)
 
+        // Kill macOS processes that auto-claim MTP/PTP USB interfaces
+        BridgeProcess.killCompetingProcesses()
+
         let p = Process()
         p.executableURL = URL(fileURLWithPath: bridgePath)
         p.currentDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -100,6 +103,24 @@ class BridgeProcess {
     }
 
     // MARK: - Private
+
+    /// Kills macOS processes that auto-claim MTP/PTP USB interfaces,
+    /// preventing libusb from claiming them.
+    static func killCompetingProcesses() {
+        let processNames = ["PTPCamera", "AMPDevicesAgent"]
+        for name in processNames {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+            task.arguments = ["-9", name]
+            task.standardOutput = FileHandle.nullDevice
+            task.standardError = FileHandle.nullDevice
+            try? task.run()
+            task.waitUntilExit()
+            if task.terminationStatus == 0 {
+                NSLog("AndroidFS: Killed %@", name)
+            }
+        }
+    }
 
     private func findBridgeBinary() -> String {
         // First check app bundle Resources

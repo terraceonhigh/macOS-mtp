@@ -215,14 +215,26 @@ func (mfs *mtpFS) OpenFile(_ context.Context, name string, flag int, _ os.FileMo
 
 	meta, ok := mfs.session.Objects.GetByPath(name)
 
-	// Handle file creation (PUT)
-	if !ok {
-		if flag&os.O_CREATE != 0 {
+	// Handle file creation or overwrite (PUT)
+	if flag&(os.O_WRONLY|os.O_RDWR|os.O_CREATE|os.O_TRUNC) != 0 {
+		if ok && !meta.IsDir {
+			// File exists — delete it first so we can replace it
+			mfs.session.Do(mtp.MTPRequest{
+				Op:       mtp.OpDelete,
+				ObjectID: meta.ID,
+			})
+			mfs.session.Objects.Remove(name)
+			mfs.session.Objects.InvalidateDir(path.Dir(name))
+		}
+		if !ok || !meta.IsDir {
 			return &mtpNewFile{
 				session: mfs.session,
 				path:    name,
 			}, nil
 		}
+	}
+
+	if !ok {
 		return nil, os.ErrNotExist
 	}
 

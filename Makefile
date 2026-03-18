@@ -12,6 +12,7 @@ bridge:
 # Bundle the bridge binary + libmtp into an app directory
 define BUNDLE_BRIDGE
 	mkdir -p "$(1)/Contents/Frameworks" "$(1)/Contents/Resources"; \
+	rm -f "$(1)/Contents/Resources/bridge" "$(1)/Contents/Frameworks/libmtp.9.dylib"; \
 	cp $(BRIDGE_OUT) "$(1)/Contents/Resources/bridge"; \
 	cp $(LIBMTP_DYLIB) "$(1)/Contents/Frameworks/libmtp.9.dylib"; \
 	install_name_tool -change $(LIBMTP_DYLIB) @executable_path/../Frameworks/libmtp.9.dylib "$(1)/Contents/Resources/bridge"; \

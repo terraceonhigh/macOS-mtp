@@ -155,40 +155,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Bridge + Mount Lifecycle
 
     private func connectDevice(_ device: USBDevice) async {
-        // Wait for USB interface to settle before opening MTP session
-        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        // Ensure any previous bridge is fully stopped
+        await teardown()
 
-        let bp = BridgeProcess()
-        self.bridge = bp
+        // Retry with increasing delay — the USB interface needs time to settle
+        // and macOS's PTP daemon may briefly claim it first
+        let retryDelays: [UInt64] = [3, 4, 5] // seconds
 
-        do {
-            let port = try await bp.start()
-            let displayName = bp.deviceName ?? device.displayName
+        for (attempt, delaySec) in retryDelays.enumerated() {
+            // Check we still want to connect (device hasn't been detached)
+            guard connectedDevice != nil else { return }
 
-            let _ = try await mountManager.mount(port: port, displayName: displayName)
+            try? await Task.sleep(nanoseconds: delaySec * 1_000_000_000)
 
-            await MainActor.run {
-                NSLog("AndroidFS: Device mounted as volume")
-                updateIcon(state: .mounted)
-                rebuildMenu()
-            }
-        } catch let bridgeErr as BridgeError where bridgeErr == .timeout {
-            // Timeout — File Transfer mode not selected
-            NSLog("AndroidFS: Bridge timeout — prompting user")
-            BridgeProcess.postFileTransferNotification()
-            bp.stop()
-            self.bridge = nil
-            await MainActor.run {
-                updateIcon(state: .error)
-                rebuildMenu()
-            }
-        } catch let err {
-            NSLog("AndroidFS: Connection failed — %@", err.localizedDescription)
-            bp.stop()
-            self.bridge = nil
-            await MainActor.run {
-                updateIcon(state: .error)
-                rebuildMenu()
+            let bp = BridgeProcess()
+            self.bridge = bp
+
+            do {
+                let port = try await bp.start()
+                let displayName = bp.deviceName ?? device.displayName
+
+                let _ = try await mountManager.mount(port: port, displayName: displayName)
+
+                await MainActor.run {
+                    NSLog("AndroidFS: Device mounted as volume")
+                    updateIcon(state: .mounted)
+                    rebuildMenu()
+                }
+                return // success
+            } catch let bridgeErr as BridgeError where bridgeErr == .timeout {
+                NSLog("AndroidFS: Bridge timeout — prompting user")
+                BridgeProcess.postFileTransferNotification()
+                bp.stop()
+                self.bridge = nil
+                await MainActor.run {
+                    updateIcon(state: .error)
+                    rebuildMenu()
+                }
+                return // don't retry timeouts
+            } catch let err {
+                bp.stop()
+                self.bridge = nil
+                if attempt < retryDelays.count - 1 {
+                    NSLog("AndroidFS: Attempt %d failed (%@), retrying...", attempt + 1, err.localizedDescription)
+                } else {
+                    NSLog("AndroidFS: All attempts failed — %@", err.localizedDescription)
+                    await MainActor.run {
+                        updateIcon(state: .error)
+                        rebuildMenu()
+                    }
+                }
             }
         }
     }
