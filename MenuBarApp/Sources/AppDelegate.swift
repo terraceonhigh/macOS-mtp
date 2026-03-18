@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Current state
     private var connectedDevice: USBDevice?
+    private var isConnecting = false  // lock out spurious events during connection
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -40,7 +41,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 menu.addItem(NSMenuItem(title: "Eject \(device.displayName)",
                                         action: #selector(ejectDevice),
                                         keyEquivalent: "e"))
-            } else if bridge?.isRunning == true {
+            } else if isConnecting {
                 let connecting = NSMenuItem(title: "Connecting…", action: nil, keyEquivalent: "")
                 connecting.isEnabled = false
                 menu.addItem(connecting)
@@ -108,7 +109,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDeviceAttached(_ device: USBDevice) {
         NSLog("AndroidFS: Device attached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
               device.vendorID, device.productID)
+
+        // Ignore attach events while we're already connecting or mounted
+        if isConnecting {
+            NSLog("AndroidFS: Ignoring attach — connection already in progress")
+            return
+        }
+        if mountManager.isMounted {
+            NSLog("AndroidFS: Ignoring attach — already mounted")
+            return
+        }
+
         connectedDevice = device
+        isConnecting = true
         updateIcon(state: .connecting)
         rebuildMenu()
 
@@ -120,6 +133,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDeviceDetached(_ device: USBDevice) {
         NSLog("AndroidFS: Device detached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
               device.vendorID, device.productID)
+
+        // Ignore spurious detach events during connection — USB re-enumeration
+        // causes rapid detach/attach cycles when the phone switches to MTP mode
+        if isConnecting {
+            NSLog("AndroidFS: Ignoring detach — connection in progress (USB re-enumeration)")
+            return
+        }
+
+        // Only tear down if we're actually mounted
+        guard mountManager.isMounted || bridge?.isRunning == true else {
+            connectedDevice = nil
+            updateIcon(state: .idle)
+            rebuildMenu()
+            return
+        }
 
         Task {
             await teardown()
@@ -133,6 +161,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func ejectDevice() {
         NSLog("AndroidFS: Eject requested")
+        isConnecting = false
         Task {
             await teardown()
             await MainActor.run {
@@ -158,15 +187,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Ensure any previous bridge is fully stopped
         await teardown()
 
-        // Retry with increasing delay — the USB interface needs time to settle
-        // and macOS's PTP daemon may briefly claim it first
-        let retryDelays: [UInt64] = [3, 4, 5] // seconds
+        // Wait for USB to fully settle — the phone does multiple
+        // detach/reattach cycles when switching to MTP mode
+        try? await Task.sleep(nanoseconds: 5_000_000_000)
+
+        // Retry with increasing delay
+        let retryDelays: [UInt64] = [0, 3, 5] // seconds before each attempt
 
         for (attempt, delaySec) in retryDelays.enumerated() {
-            // Check we still want to connect (device hasn't been detached)
-            guard connectedDevice != nil else { return }
+            guard isConnecting else { return } // cancelled
 
-            try? await Task.sleep(nanoseconds: delaySec * 1_000_000_000)
+            if delaySec > 0 {
+                try? await Task.sleep(nanoseconds: delaySec * 1_000_000_000)
+            }
 
             let bp = BridgeProcess()
             self.bridge = bp
@@ -179,6 +212,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 await MainActor.run {
                     NSLog("AndroidFS: Device mounted as volume")
+                    isConnecting = false
                     updateIcon(state: .mounted)
                     rebuildMenu()
                 }
@@ -189,6 +223,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 bp.stop()
                 self.bridge = nil
                 await MainActor.run {
+                    isConnecting = false
                     updateIcon(state: .error)
                     rebuildMenu()
                 }
@@ -201,6 +236,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 } else {
                     NSLog("AndroidFS: All attempts failed — %@", err.localizedDescription)
                     await MainActor.run {
+                        isConnecting = false
                         updateIcon(state: .error)
                         rebuildMenu()
                     }
