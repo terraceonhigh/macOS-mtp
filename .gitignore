@@ -70,3 +70,6 @@ tmp/*
 *.js.map
 *.js.LICENSE.txt
 *.prod.js.LICENSE.txt
+
+# AndroidFS build artifacts
+build/bridge
