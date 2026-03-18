@@ -1,8 +1,6 @@
 # AndroidFS — Android File Transfer for macOS
 
-Mount your Android phone as a Finder volume over USB. No developer mode,
-no USB debugging, no pairing ceremony — just plug in, select File Transfer,
-and your phone appears in Finder.
+Mount your Android phone as a Finder volume over USB. Just plug in, select File Transfer, and your phone appears in Finder.
 
 ## How It Works
 
@@ -43,8 +41,6 @@ unsigned app — click "Open" to proceed).
 - macOS 13 (Ventura) or later
 - Apple Silicon Mac (ARM)
 - An Android phone with a data-capable USB cable
-
-No Homebrew, no drivers, no kernel extensions. Everything is bundled.
 
 ## Building from Source
 
