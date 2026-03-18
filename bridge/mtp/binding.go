@@ -157,18 +157,27 @@ func (d *Device) Close() {
 	}
 }
 
-// FriendlyName returns the device's friendly name.
+// FriendlyName returns the device's friendly name, falling back to
+// model name, manufacturer, or "Android Device".
 func (d *Device) FriendlyName() string {
-	cname := C.LIBMTP_Get_Friendlyname(d.dev)
-	if cname == nil {
-		return "Android Device"
+	if name := d.getCString(C.LIBMTP_Get_Friendlyname(d.dev)); name != "" {
+		return name
 	}
-	defer C.free(unsafe.Pointer(cname))
-	name := C.GoString(cname)
-	if name == "" {
-		return "Android Device"
+	if name := d.getCString(C.LIBMTP_Get_Modelname(d.dev)); name != "" {
+		return name
 	}
-	return name
+	if name := d.getCString(C.LIBMTP_Get_Manufacturername(d.dev)); name != "" {
+		return name
+	}
+	return "Android Device"
+}
+
+func (d *Device) getCString(cstr *C.char) string {
+	if cstr == nil {
+		return ""
+	}
+	defer C.free(unsafe.Pointer(cstr))
+	return C.GoString(cstr)
 }
 
 // GetStorages returns all storages on the device.

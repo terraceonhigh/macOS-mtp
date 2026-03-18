@@ -144,23 +144,35 @@ class BridgeProcess {
         var port: Int?
         var device: String?
         let handle = pipe.fileHandleForReading
+        var accumulated = ""
 
-        while port == nil {
+        while port == nil || device == nil {
             let data = handle.availableData
             guard !data.isEmpty else {
-                // EOF — process exited without printing PORT=
+                if port != nil {
+                    break // Got port but no device name — that's OK
+                }
                 throw BridgeError.exitedEarly
             }
 
             if let output = String(data: data, encoding: .utf8) {
-                for line in output.components(separatedBy: .newlines) {
+                accumulated += output
+                for line in accumulated.components(separatedBy: .newlines) {
                     if line.hasPrefix("PORT="), let p = Int(line.dropFirst(5)) {
                         port = p
                     }
                     if line.hasPrefix("DEVICE=") {
-                        device = String(line.dropFirst(7))
+                        let name = String(line.dropFirst(7))
+                        if !name.isEmpty {
+                            device = name
+                        }
                     }
                 }
+            }
+
+            // Once we have port, give a brief moment for DEVICE= to arrive
+            if port != nil && device == nil {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
             }
         }
 

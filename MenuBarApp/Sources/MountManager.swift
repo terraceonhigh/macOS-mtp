@@ -23,47 +23,76 @@ class MountManager {
     /// Mounts a WebDAV URL and returns the mount path.
     func mount(port: Int, displayName: String) async throws -> URL {
         let serverURL = URL(string: "http://127.0.0.1:\(port)/")! as CFURL
-        let mountDir = URL(fileURLWithPath: "/Volumes") as CFURL
 
-        NSLog("AndroidFS: Mounting WebDAV at port %d as %@", port, displayName)
+        let safeName = displayName
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        let targetPath = "/Volumes/\(safeName)"
+        let mountDir = URL(fileURLWithPath: targetPath) as CFURL
+
+        // Remove stale mount point from previous run
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        if fm.fileExists(atPath: targetPath, isDirectory: &isDir) {
+            try? fm.removeItem(atPath: targetPath)
+        }
+
+        NSLog("AndroidFS: Mounting WebDAV at port %d → %@", port, targetPath)
 
         return try await withCheckedThrowingContinuation { continuation in
             var mountPoints: Unmanaged<CFArray>?
 
             let openOptions: NSMutableDictionary = [
-                kNAUIOptionKey: kNAUIOptionNoUI,  // suppress all auth UI
+                kNAUIOptionKey: kNAUIOptionNoUI,
             ]
-            let mountOptions: NSMutableDictionary = [:]
+            let mountOptions: NSMutableDictionary = [
+                kNetFSMountAtMountDirKey: true,
+            ]
 
             let rc = NetFSMountURLSync(
                 serverURL,
                 mountDir,
-                "" as CFString, // empty user = guest
-                "" as CFString, // empty password
+                "" as CFString,
+                "" as CFString,
                 openOptions,
                 mountOptions,
                 &mountPoints
             )
 
             if rc != 0 {
-                NSLog("AndroidFS: NetFSMountURLSync failed with error %d", rc)
-                continuation.resume(throwing: MountError.mountFailed(rc))
-                return
+                NSLog("AndroidFS: Mount at %@ failed (error %d), falling back to /Volumes", targetPath, rc)
+
+                // Fallback: mount at /Volumes (creates /Volumes/127.0.0.1)
+                let fallbackDir = URL(fileURLWithPath: "/Volumes") as CFURL
+                let rc2 = NetFSMountURLSync(
+                    serverURL,
+                    fallbackDir,
+                    "" as CFString,
+                    "" as CFString,
+                    openOptions,
+                    NSMutableDictionary(),
+                    &mountPoints
+                )
+                if rc2 != 0 {
+                    NSLog("AndroidFS: Fallback mount also failed with error %d", rc2)
+                    continuation.resume(throwing: MountError.mountFailed(rc2))
+                    return
+                }
             }
 
+            var mountURL: URL
             if let points = mountPoints?.takeRetainedValue() as? [String],
                let firstMount = points.first {
-                let mountURL = URL(fileURLWithPath: firstMount)
-                self.mountPath = mountURL
-                NSLog("AndroidFS: Mounted at %@", firstMount)
-                continuation.resume(returning: mountURL)
+                mountURL = URL(fileURLWithPath: firstMount)
+            } else if fm.fileExists(atPath: targetPath) {
+                mountURL = URL(fileURLWithPath: targetPath)
             } else {
-                NSLog("AndroidFS: Mount succeeded but no mount point returned")
-                // Try to find it in /Volumes
-                let fallback = URL(fileURLWithPath: "/Volumes/127.0.0.1")
-                self.mountPath = fallback
-                continuation.resume(returning: fallback)
+                mountURL = URL(fileURLWithPath: "/Volumes/127.0.0.1")
             }
+
+            self.mountPath = mountURL
+            NSLog("AndroidFS: Mounted at %@", mountURL.path)
+            continuation.resume(returning: mountURL)
         }
     }
 
