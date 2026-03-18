@@ -1,4 +1,4 @@
-# AndroidFS — Android File Transfer for macOS
+# macOS-mtp — Android File Transfer for macOS
 
 Mount your Android phone as a Finder volume over USB. Just plug in, select File Transfer, and your phone appears in Finder.
 
@@ -118,7 +118,7 @@ session-locked protocol doesn't map well to File Provider's pull-based model.
 
 This project is a fork of [OpenMTP](https://github.com/ganeshrvel/openmtp)
 by Ganesh Rathinavel. The original Electron frontend and Node.js MTP
-bindings are not used — AndroidFS is a clean reimplementation with a
+bindings are not used — macOS-mtp is a clean reimplementation with a
 different architecture (Go + Swift instead of Electron + Node).
 
 ## License
