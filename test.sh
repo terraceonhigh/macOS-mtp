@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# AndroidFS Bridge Integration Test
+# macOS-mtp Bridge Integration Test
 # Requires: Android phone connected via USB in File Transfer mode
 
 MOUNT_POINT="/tmp/mtp-test"
@@ -48,7 +48,7 @@ run_test() {
 
 # ============================================================
 echo "========================================"
-echo " AndroidFS Bridge Integration Tests"
+echo " macOS-mtp Bridge Integration Tests"
 echo "========================================"
 echo ""
 
@@ -162,7 +162,7 @@ rm -f /tmp/test-download-src.txt
 
 echo ""
 echo "--- Test 4: File upload ---"
-echo "hello from androidfs test $(date)" > /tmp/test-upload.txt
+echo "hello from macos-mtp test $(date)" > /tmp/test-upload.txt
 if cp /tmp/test-upload.txt "$BASE/test-upload.txt" 2>/dev/null; then
     pass "Upload file"
     TESTS=$((TESTS + 1))

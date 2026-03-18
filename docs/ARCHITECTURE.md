@@ -1,8 +1,8 @@
-# AndroidFS Architecture
+# macOS-mtp Architecture
 
 ## Overview
 
-AndroidFS is a macOS menu bar application that makes an Android phone
+macOS-mtp is a macOS menu bar application that makes an Android phone
 appear as a mounted volume in Finder when connected via USB. It requires
 no developer mode, no USB debugging, and no user action beyond selecting
 "File Transfer" on the phone's USB notification.
@@ -11,7 +11,7 @@ no developer mode, no USB debugging, and no user action beyond selecting
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    AndroidFS.app                         │
+│                    macOS-mtp.app                         │
 │                                                         │
 │  ┌──────────────┐   ┌──────────────┐   ┌─────────────┐ │
 │  │ DeviceWatcher│──▶│BridgeProcess │──▶│MountManager │ │

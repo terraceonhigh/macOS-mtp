@@ -4,8 +4,8 @@ set -euo pipefail
 # Test the Swift menu bar app's IOKit device watching
 # Writes diagnostic output to help debug USB event detection
 
-APP_PATH="/Users/terrace/Library/Developer/Xcode/DerivedData/AndroidFS-bbyhmnynyabnsgdtvugojqojheus/Build/Products/Debug/AndroidFS.app"
-LOG_FILE="/tmp/androidfs-test.log"
+APP_PATH="/Users/terrace/Library/Developer/Xcode/DerivedData/macOS-mtp-bbyhmnynyabnsgdtvugojqojheus/Build/Products/Debug/macOS-mtp.app"
+LOG_FILE="/tmp/macos-mtp-test.log"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,20 +13,20 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo "========================================"
-echo " AndroidFS Swift App Diagnostic"
+echo " macOS-mtp Swift App Diagnostic"
 echo "========================================"
 echo ""
 
 # 1. Check app exists
 if [ ! -d "$APP_PATH" ]; then
     echo -e "${RED}App not found at $APP_PATH${NC}"
-    echo "Run: xcodebuild -project MenuBarApp/AndroidFS.xcodeproj -scheme AndroidFS -configuration Debug build"
+    echo "Run: xcodebuild -project MenuBarApp/macOS-mtp.xcodeproj -scheme macOS-mtp -configuration Debug build"
     exit 1
 fi
 echo -e "${GREEN}App found${NC}"
 
 # 2. Kill any existing instance
-killall AndroidFS 2>/dev/null && echo "Killed existing instance" && sleep 1 || true
+killall macOS-mtp 2>/dev/null && echo "Killed existing instance" && sleep 1 || true
 
 # 3. Check if phone is connected
 echo ""
@@ -39,9 +39,9 @@ echo "--- Launching app ---"
 rm -f "$LOG_FILE"
 
 # Launch the binary directly (not via open) to capture stdout/stderr
-"$APP_PATH/Contents/MacOS/AndroidFS" > "$LOG_FILE" 2>&1 &
+"$APP_PATH/Contents/MacOS/macOS-mtp" > "$LOG_FILE" 2>&1 &
 APP_PID=$!
-echo "Launched AndroidFS (PID $APP_PID)"
+echo "Launched macOS-mtp (PID $APP_PID)"
 
 # Give it a moment to start
 sleep 3
@@ -93,9 +93,9 @@ cat "$LOG_FILE"
 # 8. Also check log stream separately
 echo ""
 echo "--- System log entries (last 60s) ---"
-log show --process AndroidFS --last 60s 2>/dev/null | grep -i "android\|vendor\|usb\|device\|attach\|loaded\|register" || echo "(no matching log entries)"
+log show --process macOS-mtp --last 60s 2>/dev/null | grep -i "android\|vendor\|usb\|device\|attach\|loaded\|register" || echo "(no matching log entries)"
 
 # Cleanup
 echo ""
 echo "--- Cleanup ---"
-kill "$APP_PID" 2>/dev/null && echo "Killed AndroidFS" || echo "Already exited"
+kill "$APP_PID" 2>/dev/null && echo "Killed macOS-mtp" || echo "Already exited"

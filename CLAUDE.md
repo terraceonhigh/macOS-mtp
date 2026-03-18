@@ -1,4 +1,4 @@
-# CLAUDE.md — AndroidFS for macOS
+# CLAUDE.md — macOS-mtp
 
 > Read this document in full before writing any code, creating any files, or
 > making any architectural decisions. Every section exists because a
@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-**AndroidFS** is a macOS menu bar application that makes an Android phone
+**macOS-mtp** is a macOS menu bar application that makes an Android phone
 appear as a mounted volume in Finder when connected via USB — without
 requiring Android developer mode, USB debugging, or any gesture more
 involved than selecting "File Transfer" on the phone's USB notification.
@@ -21,10 +21,10 @@ The intended user is non-technical. The interaction model is:
 
 Nothing else. No settings archaeology. No pairing ceremony beyond step 2.
 
-This repository is a fork of OpenMTP. The Electron frontend and existing
-Node.js MTP bindings are **reference material only**. This application is a
-clean reimplementation with a different architecture. Do not attempt to adapt
-or reuse the OpenMTP frontend.
+This repository is a fork of the original OpenMTP project. The Electron
+frontend and existing Node.js MTP bindings are **reference material only**.
+This application is a clean reimplementation with a different architecture.
+Do not attempt to adapt or reuse the original frontend.
 
 ---
 
@@ -101,7 +101,7 @@ APIs. There is no reason to introduce another language for this layer.
 │   └── vendor/
 │       └── libmtp.h           ← copy of /opt/homebrew/include/libmtp.h
 ├── MenuBarApp/                ← Swift menu bar app (Xcode project)
-│   ├── AndroidFS.xcodeproj
+│   ├── macOS-mtp.xcodeproj
 │   ├── Sources/
 │   │   ├── AppDelegate.swift
 │   │   ├── DeviceWatcher.swift   ← IOKit USB monitoring
@@ -110,7 +110,7 @@ APIs. There is no reason to introduce another language for this layer.
 │   ├── Resources/
 │   │   ├── bridge               ← compiled Go binary (copied by make app)
 │   │   └── VendorIDs.plist      ← known Android USB vendor IDs
-│   └── AndroidFS.entitlements
+│   └── macOS-mtp.entitlements
 └── build/
     └── bridge                 ← build output for Go binary
 ```
@@ -159,7 +159,7 @@ Reference it in cgo preamble as `#include "../vendor/libmtp.h"`.
 # Makefile
 
 BRIDGE_OUT := build/bridge
-APP_NAME   := AndroidFS
+APP_NAME   := macOS-mtp
 
 .PHONY: bridge app dev clean
 
@@ -179,6 +179,7 @@ dev: bridge
 clean:
 	rm -rf build/
 	xcodebuild -project MenuBarApp/$(APP_NAME).xcodeproj clean
+
 ```
 
 `make dev` builds the bridge and runs it standalone against the first
@@ -351,7 +352,7 @@ integer so the Swift parser is robust against log lines.
 
 ### Entitlements
 
-`AndroidFS.entitlements` must include:
+`macOS-mtp.entitlements` must include:
 
 ```xml
 <key>com.apple.security.device.usb</key>
@@ -465,7 +466,7 @@ Menu items when connected:
 - Device name (disabled, informational)
 - "Eject [Device Name]" → unmount + stop bridge
 - Separator
-- "Quit AndroidFS"
+- "Quit macOS-mtp"
 
 ### "File Transfer not selected" UX
 
@@ -591,7 +592,7 @@ introduced.
 
 ## Reference Material
 
-- OpenMTP source (this repo's `main` branch) — MTP binding patterns only
+- Original OpenMTP source (this repo's `main` branch) — MTP binding patterns only
 - `libmtp` API docs: http://libmtp.sourceforge.net/doc/html/
 - `golang.org/x/net/webdav` — FileSystem interface and server
 - RFC 4918 — WebDAV specification
@@ -600,7 +601,7 @@ introduced.
   `/Applications/Xcode.app/.../NetFS.framework/Headers/NetFS.h`
 - DiskArbitration framework — `DADiskUnmount`
 
-When OpenMTP's libmtp binding and this project's binding differ, prefer
+When the original libmtp binding and this project's binding differ, prefer
 the approach that keeps all MTP calls on the session goroutine, even if
 it means more channel overhead. Correctness over performance in the
 binding layer.

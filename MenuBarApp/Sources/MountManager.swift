@@ -37,7 +37,7 @@ class MountManager {
             try? fm.removeItem(atPath: targetPath)
         }
 
-        NSLog("AndroidFS: Mounting WebDAV at port %d → %@", port, targetPath)
+        NSLog("macOS-mtp: Mounting WebDAV at port %d → %@", port, targetPath)
 
         return try await withCheckedThrowingContinuation { continuation in
             var mountPoints: Unmanaged<CFArray>?
@@ -60,7 +60,7 @@ class MountManager {
             )
 
             if rc != 0 {
-                NSLog("AndroidFS: Mount at %@ failed (error %d), falling back to /Volumes", targetPath, rc)
+                NSLog("macOS-mtp: Mount at %@ failed (error %d), falling back to /Volumes", targetPath, rc)
 
                 // Fallback: mount at /Volumes (creates /Volumes/127.0.0.1)
                 let fallbackDir = URL(fileURLWithPath: "/Volumes") as CFURL
@@ -74,7 +74,7 @@ class MountManager {
                     &mountPoints
                 )
                 if rc2 != 0 {
-                    NSLog("AndroidFS: Fallback mount also failed with error %d", rc2)
+                    NSLog("macOS-mtp: Fallback mount also failed with error %d", rc2)
                     continuation.resume(throwing: MountError.mountFailed(rc2))
                     return
                 }
@@ -91,7 +91,7 @@ class MountManager {
             }
 
             self.mountPath = mountURL
-            NSLog("AndroidFS: Mounted at %@", mountURL.path)
+            NSLog("macOS-mtp: Mounted at %@", mountURL.path)
             continuation.resume(returning: mountURL)
         }
     }
@@ -99,7 +99,7 @@ class MountManager {
     /// Unmounts the currently mounted volume.
     func unmount() async {
         guard let path = mountPath else { return }
-        NSLog("AndroidFS: Unmounting %@", path.path)
+        NSLog("macOS-mtp: Unmounting %@", path.path)
 
         guard let session = daSession else {
             // Fallback: use Process to call umount
@@ -109,7 +109,7 @@ class MountManager {
         }
 
         guard let disk = DADiskCreateFromVolumePath(kCFAllocatorDefault, session, path as CFURL) else {
-            NSLog("AndroidFS: Could not create DADisk for %@, trying fallback", path.path)
+            NSLog("macOS-mtp: Could not create DADisk for %@, trying fallback", path.path)
             fallbackUnmount(path)
             mountPath = nil
             return
@@ -118,10 +118,10 @@ class MountManager {
         DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionDefault), { disk, dissenter, context in
             if let dissenter = dissenter {
                 let status = DADissenterGetStatus(dissenter)
-                NSLog("AndroidFS: Clean unmount failed (status %d), forcing", status)
+                NSLog("macOS-mtp: Clean unmount failed (status %d), forcing", status)
                 DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionForce), nil, nil)
             } else {
-                NSLog("AndroidFS: Unmounted successfully")
+                NSLog("macOS-mtp: Unmounted successfully")
             }
         }, nil)
 

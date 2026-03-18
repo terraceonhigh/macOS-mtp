@@ -53,7 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit AndroidFS",
+        menu.addItem(NSMenuItem(title: "Quit macOS-mtp",
                                 action: #selector(quitApp),
                                 keyEquivalent: "q"))
 
@@ -84,7 +84,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             symbolName = "externaldrive.badge.xmark"
         }
 
-        button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "AndroidFS")
+        button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "macOS-mtp")
         button.image?.size = NSSize(width: 18, height: 18)
     }
 
@@ -107,16 +107,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleDeviceAttached(_ device: USBDevice) {
-        NSLog("AndroidFS: Device attached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
+        NSLog("macOS-mtp: Device attached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
               device.vendorID, device.productID)
 
         // Ignore attach events while we're already connecting or mounted
         if isConnecting {
-            NSLog("AndroidFS: Ignoring attach — connection already in progress")
+            NSLog("macOS-mtp: Ignoring attach — connection already in progress")
             return
         }
         if mountManager.isMounted {
-            NSLog("AndroidFS: Ignoring attach — already mounted")
+            NSLog("macOS-mtp: Ignoring attach — already mounted")
             return
         }
 
@@ -131,13 +131,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleDeviceDetached(_ device: USBDevice) {
-        NSLog("AndroidFS: Device detached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
+        NSLog("macOS-mtp: Device detached — \(device.displayName) (vendor: 0x%04X, product: 0x%04X)",
               device.vendorID, device.productID)
 
         // Ignore spurious detach events during connection — USB re-enumeration
         // causes rapid detach/attach cycles when the phone switches to MTP mode
         if isConnecting {
-            NSLog("AndroidFS: Ignoring detach — connection in progress (USB re-enumeration)")
+            NSLog("macOS-mtp: Ignoring detach — connection in progress (USB re-enumeration)")
             return
         }
 
@@ -160,7 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func ejectDevice() {
-        NSLog("AndroidFS: Eject requested")
+        NSLog("macOS-mtp: Eject requested")
         isConnecting = false
         Task {
             await teardown()
@@ -211,14 +211,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let _ = try await mountManager.mount(port: port, displayName: displayName)
 
                 await MainActor.run {
-                    NSLog("AndroidFS: Device mounted as volume")
+                    NSLog("macOS-mtp: Device mounted as volume")
                     isConnecting = false
                     updateIcon(state: .mounted)
                     rebuildMenu()
                 }
                 return // success
             } catch let bridgeErr as BridgeError where bridgeErr == .timeout {
-                NSLog("AndroidFS: Bridge timeout — prompting user")
+                NSLog("macOS-mtp: Bridge timeout — prompting user")
                 BridgeProcess.postFileTransferNotification()
                 bp.stop()
                 self.bridge = nil
@@ -232,9 +232,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 bp.stop()
                 self.bridge = nil
                 if attempt < retryDelays.count - 1 {
-                    NSLog("AndroidFS: Attempt %d failed (%@), retrying...", attempt + 1, err.localizedDescription)
+                    NSLog("macOS-mtp: Attempt %d failed (%@), retrying...", attempt + 1, err.localizedDescription)
                 } else {
-                    NSLog("AndroidFS: All attempts failed — %@", err.localizedDescription)
+                    NSLog("macOS-mtp: All attempts failed — %@", err.localizedDescription)
                     await MainActor.run {
                         isConnecting = false
                         updateIcon(state: .error)

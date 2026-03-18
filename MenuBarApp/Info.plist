@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>AndroidFS</string>
+	<string>macOS-mtp</string>
 	<key>CFBundleDisplayName</key>
-	<string>AndroidFS</string>
+	<string>macOS-mtp</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.androidfs.app</string>
+	<string>com.macosmtp.app</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleExecutable</key>
-	<string>AndroidFS</string>
+	<string>macOS-mtp</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
