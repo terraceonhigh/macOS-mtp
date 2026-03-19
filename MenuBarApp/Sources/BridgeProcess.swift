@@ -16,7 +16,7 @@ class BridgeProcess {
             throw BridgeError.binaryNotFound(bridgePath)
         }
 
-        NSLog("AndroidFS: Starting bridge at %@", bridgePath)
+        NSLog("macOS-mtp: Starting bridge at %@", bridgePath)
 
         // Kill macOS processes that auto-claim MTP/PTP USB interfaces
         BridgeProcess.killCompetingProcesses()
@@ -44,13 +44,13 @@ class BridgeProcess {
         stderrPipe.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             if !data.isEmpty, let line = String(data: data, encoding: .utf8) {
-                NSLog("AndroidFS bridge: %@", line.trimmingCharacters(in: .whitespacesAndNewlines))
+                NSLog("macOS-mtp bridge: %@", line.trimmingCharacters(in: .whitespacesAndNewlines))
             }
         }
 
         try p.run()
         self.process = p
-        NSLog("AndroidFS: Bridge process started (PID %d)", p.processIdentifier)
+        NSLog("macOS-mtp: Bridge process started (PID %d)", p.processIdentifier)
 
         // Read PORT= and DEVICE= from stdout with timeout
         let result = try await withThrowingTaskGroup(of: (Int, String?).self) { group in
@@ -69,7 +69,7 @@ class BridgeProcess {
 
         self.port = result.0
         self.deviceName = result.1
-        NSLog("AndroidFS: Bridge ready on port %d, device: %@", result.0, result.1 ?? "unknown")
+        NSLog("macOS-mtp: Bridge ready on port %d, device: %@", result.0, result.1 ?? "unknown")
         return result.0
     }
 
@@ -82,13 +82,13 @@ class BridgeProcess {
             return
         }
 
-        NSLog("AndroidFS: Stopping bridge (PID %d)", p.processIdentifier)
+        NSLog("macOS-mtp: Stopping bridge (PID %d)", p.processIdentifier)
         p.terminate()
 
         // Give it a moment to exit cleanly, then force kill
         DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak p] in
             if let p = p, p.isRunning {
-                NSLog("AndroidFS: Force killing bridge")
+                NSLog("macOS-mtp: Force killing bridge")
                 p.interrupt()
             }
         }
@@ -117,7 +117,7 @@ class BridgeProcess {
             try? task.run()
             task.waitUntilExit()
             if task.terminationStatus == 0 {
-                NSLog("AndroidFS: Killed %@", name)
+                NSLog("macOS-mtp: Killed %@", name)
             }
         }
     }

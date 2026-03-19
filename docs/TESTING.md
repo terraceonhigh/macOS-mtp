@@ -1,4 +1,4 @@
-# Testing AndroidFS
+# Testing macOS-mtp
 
 ## Automated Integration Tests
 
@@ -88,7 +88,7 @@ When things go wrong (bridge hangs, stale mount, USB session locked):
 
 ```bash
 # Kill everything
-killall AndroidFS bridge 2>/dev/null
+killall macOS-mtp bridge 2>/dev/null
 umount -f /Volumes/127.0.0.1 2>/dev/null
 
 # If USB session is locked:

@@ -1,6 +1,6 @@
 # Mistakes & Pitfalls
 
-Everything we got wrong building AndroidFS, so you don't have to.
+Everything we got wrong building macOS-mtp, so you don't have to.
 
 ## MTP / libmtp
 
@@ -177,7 +177,7 @@ _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
 ### 15. NSLog not visible in `log stream`
 
 **What happened:** Ran the app via `open Foo.app` and watched
-`log stream --process AndroidFS`. Our NSLog messages didn't appear.
+`log stream --process macOS-mtp`. Our NSLog messages didn't appear.
 System framework messages appeared, but not ours.
 
 **Fix:** Launch the binary directly

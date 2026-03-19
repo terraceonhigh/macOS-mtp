@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"androidfs/bridge/mtp"
-	"androidfs/bridge/webdav"
+	"macos-mtp/bridge/mtp"
+	"macos-mtp/bridge/webdav"
 )
 
 func main() {

@@ -1,5 +1,5 @@
 BRIDGE_OUT := build/bridge
-APP_NAME   := AndroidFS
+APP_NAME   := macOS-mtp
 GO         := /opt/homebrew/bin/go
 DERIVED    := $(HOME)/Library/Developer/Xcode/DerivedData
 LIBMTP_DYLIB := /opt/homebrew/opt/libmtp/lib/libmtp.9.dylib

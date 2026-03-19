@@ -1,4 +1,4 @@
-# Contributing to AndroidFS
+# Contributing to macOS-mtp
 
 ## How to Contribute
 

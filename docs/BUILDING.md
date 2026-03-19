@@ -1,4 +1,4 @@
-# Building AndroidFS
+# Building macOS-mtp
 
 ## Prerequisites
 
@@ -61,9 +61,9 @@ make clean
 
 ```
 dist/
-├── AndroidFS.app/
+├── macOS-mtp.app/
 │   ├── Contents/
-│   │   ├── MacOS/AndroidFS          # Swift menu bar app
+│   │   ├── MacOS/macOS-mtp          # Swift menu bar app
 │   │   ├── Resources/
 │   │   │   ├── bridge               # Go WebDAV bridge binary
 │   │   │   └── VendorIDs.plist      # Android vendor IDs
@@ -72,7 +72,7 @@ dist/
 │   │   │   └── libusb-1.0.0.dylib   # USB library (rpath rewritten)
 │   │   └── Info.plist
 │   └── ...
-└── AndroidFS.zip                     # ~5MB, ready to share
+└── macOS-mtp.zip                     # ~5MB, ready to share
 ```
 
 All dynamic library paths are rewritten with `install_name_tool` to use

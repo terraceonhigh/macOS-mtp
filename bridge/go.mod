@@ -1,4 +1,4 @@
-module androidfs/bridge
+module macos-mtp/bridge
 
 go 1.21
 
